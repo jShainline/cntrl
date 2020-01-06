@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-def run_iv_sweep_srs__current_bias(voltage_source,voltage_meter,current_bias_values,R_series, delay = 0.75):
+def run_iv_sweep_srs__current_bias(voltage_source,voltage_meter,voltage_meter_channel,current_bias_values,R_series, delay = 0.75):
     
     vs = voltage_source
     dmm = voltage_meter
@@ -14,17 +14,15 @@ def run_iv_sweep_srs__current_bias(voltage_source,voltage_meter,current_bias_val
     
     voltage_values = current_bias_values*R_series
     
+    print('running I-V sweep ...')
     for v in voltage_values:
         
+        print('v = '+str(v)+' of '+str(voltage_values[-1]))
         vs.set_voltage(v)
         time.sleep(delay)
-#        v1 = dmm.read_voltage(channel = 1)
-        v1 = v
-        v2 = dmm.read_voltage(channel = 2)
-        v3 = dmm.read_voltage(channel = 3)
-        V.append(v3)
-        I.append((v1-v2)/R_series)
+        V.append(dmm.read_voltage(channel = voltage_meter_channel))
+#        I.append((v1-v2)/R_series)
         
     vs.set_voltage(0)
     
-    return np.array(V),np.array(I)
+    return np.array(V)
