@@ -93,3 +93,31 @@ grid(True,which='both')
 plt.show()
 
 time.sleep(1)
+
+#%% do the same thing with addflux instead of incoil
+device_name = 'vt01_nw_22_sqb_device4__add_flux'
+addflux_current_bias_values = np.arange(0,1e-3,10e-6)
+sq_Ic = 180e-6
+#sq_current_bias_values = np.linspace(0.5,1.5,10)*sq_Ic 
+sq_current_bias_values = np.linspace(190e-6,230e-6,5) 
+measurement_delay = 0.75
+
+I_sq_bias,I_addflux_current,V_sq_meas = sq_voltage_vs_incoil_current(squid_v_source_srs,squid_i_source_res,squid_v_meas_srs,squid_v_meas_srs_dmm_channel,
+                                                         addflux_v_srs,addflux_i_source_res,sq_current_bias_values,addflux_current_bias_values,measurement_delay,device_name)
+
+    
+fig, axes = plt.subplots(1,1)
+for ii in range(len(I_sq_bias)):
+    v_vec = V_sq_meas[:,ii]*1e3
+    axes.plot(I_addflux_current[:]*1e6, v_vec, 'o-', linewidth = 1, markersize = 3, label = 'I_sq = {0} uA'.format(I_sq_bias[ii]*1e6))
+    axes.set_ylabel(r'Voltage across SQUID (mV)', fontsize=20)
+    axes.set_xlabel(r'Addflux current (uA)', fontsize=20)
+
+#ylim((ymin_plot,ymax_plot))
+#xlim((xmin_plot,xmax_plot))
+
+axes.legend(loc='best')
+grid(True,which='both')
+plt.show()
+
+time.sleep(1)
