@@ -36,8 +36,9 @@ squid_i_source_res = 1e4
 addflux_i_source_res = 1e4
 
 #%% get squid I-V in the absence of flux
+device_name = 'vt02_nw_22_sqb_device7'
 current_bias_values = np.arange(0,300e-6,3e-6)
-V = run_iv_sweep_srs__current_bias(squid_v_source_srs,squid_v_meas_srs,squid_v_meas_srs_dmm_channel,current_bias_values,squid_i_source_res, delay = 0.75)
+V = run_iv_sweep_srs__current_bias(squid_v_source_srs,squid_v_meas_srs,squid_v_meas_srs_dmm_channel,current_bias_values,squid_i_source_res, delay = 0.75, device_name)
     
 I = current_bias_values
 fig, axes = plt.subplots(1,1)
