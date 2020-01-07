@@ -34,13 +34,17 @@ incoil_i_source_res = 1e4
 squid_i_source_res = 1e4
 addflux_i_source_res = 1e4
 
+incoil_v_source_srs.set_voltage(0)
+squid_v_source_srs.set_voltage(0)
+addflux_v_srs.set_voltage(0)
+
 #%% purge flux
 
-flux_purge_srs(squid_v_source_srs,squid_i_source_res,1e-3,5)
+flux_purge_srs(squid_v_source_srs,squid_i_source_res,1e-3,15)
 
 #%% get squid I-V in the absence of incoil flux bias
-device_name = 'vt02_nw_22_sqb_device8'
-sq_current_bias_values = np.arange(0,400e-6,1e-6)
+device_name = 'vt01_nw_22_sqb_device4'
+sq_current_bias_values = np.arange(0,300e-6,1e-6)
 V = iv_sweep_srs__current_bias(squid_v_source_srs,squid_v_meas_srs,squid_v_meas_srs_dmm_channel,sq_current_bias_values,squid_i_source_res, delay = 0.75, device_name = device_name)
     
 I = sq_current_bias_values
@@ -64,9 +68,10 @@ plt.show()
 #time.sleep(1)
 
 #%% measure SQUID voltage as a function of incoil current for several values of SQUID current bias
-incoil_current_bias_values = np.arange(0,1e-3,100e-6)
-sq_Ic = 200e-6
-sq_current_bias_values = np.linspace(0.9,2,6)*sq_Ic 
+incoil_current_bias_values = np.arange(0,1e-3,1e-6)
+sq_Ic = 180e-6
+#sq_current_bias_values = np.linspace(0.5,1.5,10)*sq_Ic 
+sq_current_bias_values = np.linspace(170e-6,210e-6,5) 
 measurement_delay = 0.75
 
 I_sq_bias,I_incoil_current,V_sq_meas = sq_voltage_vs_incoil_current(squid_v_source_srs,squid_i_source_res,squid_v_meas_srs,squid_v_meas_srs_dmm_channel,
@@ -76,7 +81,7 @@ I_sq_bias,I_incoil_current,V_sq_meas = sq_voltage_vs_incoil_current(squid_v_sour
 fig, axes = plt.subplots(1,1)
 for ii in range(len(I_sq_bias)):
     v_vec = V_sq_meas[:,ii]*1e3
-    axes.plot(I_incoil_current[:]*1e6,v_vec,label = 'I_sq = {0} uA'.format(I_sq_bias[ii]*1e6))
+    axes.plot(I_incoil_current[:]*1e6, v_vec, 'o-', linewidth = 1, markersize = 3, label = 'I_sq = {0} uA'.format(I_sq_bias[ii]*1e6))
     axes.set_ylabel(r'Voltage across SQUID (mV)', fontsize=20)
     axes.set_xlabel(r'Incoil current (uA)', fontsize=20)
 

@@ -30,6 +30,7 @@ def iv_sweep_srs__current_bias(voltage_source,voltage_meter,voltage_meter_channe
     voltage_values = current_bias_values*r_series
     
     print('\n\nrunning I-V sweep ...')
+    vs.set_voltage(0)
     now = datetime.now()
     file_name = device_name+'__IV__'+now.strftime('%H_%M_%S')+'.dat'
     f = open(file_name,'w+')
@@ -72,6 +73,10 @@ def sq_voltage_vs_incoil_current(sq_voltage_source,sq_source_r_series,sq_voltage
     voltage_values_incoil = I_incoil_current*incoil_r_series
     
     print('\n\nrunning incoil sweep ...\n')
+        
+    vs1.set_voltage(0)
+    vs2.set_voltage(0)
+    
     now = datetime.now()
     file_name = device_name+'__incoil_sweep__'+now.strftime('%H_%M_%S')+'.dat'
     f = open(file_name,'w+')    
@@ -97,5 +102,7 @@ def sq_voltage_vs_incoil_current(sq_voltage_source,sq_source_r_series,sq_voltage
             V_sq_meas[jj,ii] = dmm.read_voltage(channel = sq_voltage_channel)
             f.write('{0}, {1}\n'.format(incoil_current_bias_values[jj],V_sq_meas[jj,ii]))
     
+    vs1.set_voltage(0)
+    vs2.set_voltage(0)
     
     return I_sq_bias,I_incoil_current,V_sq_meas
