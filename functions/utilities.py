@@ -5,7 +5,11 @@ import warnings
 import os
 import inspect 
 
+#%%
 def iv__sim900__sweep_current__read_voltage(current_range,current_step,bias_resistance,measurement_delay):
+    
+    if np.abs(current_applied_vec[0]) >= 0.01 or np.abs(current_applied_vec[-1]) >= 0.01:
+        warnings.showwarning('The SIM928 can only output in the range [-10,10]mA. You have attempted to exceed this range.',UserWarning,os.path.basename(__file__),inspect.currentframe().f_back.f_lineno)
     
     from instruments.srs_sim970 import SIM970
     from instruments.srs_sim928 import SIM928
@@ -16,7 +20,7 @@ def iv__sim900__sweep_current__read_voltage(current_range,current_step,bias_resi
     current_applied_vec = np.arange(current_range[0],current_range[1]+current_step,current_step)
     #SIM928 max voltage = [-20,20]V
     voltage_applied_vec = current_applied_vec*bias_resistance
-    if 1>0: #np.abs(voltage_applied_vec[0]) >= 20 or np.abs(voltage_applied_vec[-1]) >= 20:
+    if np.abs(voltage_applied_vec[0]) >= 20 or np.abs(voltage_applied_vec[-1]) >= 20:
         warnings.showwarning('The SIM928 can only output in the range [-20,20]V. You have attempted to exceed this range.',UserWarning,os.path.basename(__file__),inspect.currentframe().f_back.f_lineno)
     
     voltage_read_vec = []
@@ -28,7 +32,7 @@ def iv__sim900__sweep_current__read_voltage(current_range,current_step,bias_resi
         voltage_read_vec.append(voltage_meter.read_voltage(channel = 1))
     voltage_source.set_output(False)
 
-    return voltage_read_vec
+    return current_applied_vec, voltage_read_vec
 
 def iv__fit_to_line(current_applied_vec,voltage_read_vec):
     
@@ -36,7 +40,7 @@ def iv__fit_to_line(current_applied_vec,voltage_read_vec):
     current_vec_dense = np.linspace(current_applied_vec[0],current_applied_vec[-1],1000)
     voltage_read_vec_fit = np.polyval(p,current_vec_dense)
 
-    return p[0], voltage_read_vec_fit
+    return p[0], current_vec_dense, voltage_read_vec_fit
 
 def flux_purge_srs(voltage_source,r_series,desired_current,hold_time):
     

@@ -1,0 +1,321 @@
+'Sample programs for GS200
+'
+' Notes on Using the Sample Programs
+'    Yokogawa Electric Corporation assumes no liability for any problems that may ocuur as a
+'    result of using the sample programs.
+'
+' Before programming
+'    Platform and language
+'        Target machine: Windows PC
+'        Language:       Visual Basic Ver5.0 Professional Edition or higher
+'        GPIB board:     AT-GPIB/TNT IEEE-488 by National Instruments
+'
+'        Settings on Visual Basic
+'            Standard modules used:  Niglobal.bas
+'                                    Vbib-32.bas
+'                                    visa32.bas
+'                                    vpptype.bas
+
+'[Access functions]
+'-------------------------------------------------------------------------------------------------------------
+'Open function
+Function CommOpen(ByVal rsrc, ByVal visa_name As String) As Long
+    Dim ret, vi As Long
+    ret = viOpen(rsrc, visa_name, 0, 0, vi)
+    If (ret < 0) Then
+        CommOpen = ret
+    Else
+        CommOpen = vi
+    End If
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Close function
+Function CommClose(ByVal vi) As Long
+    CommClose = viClose(vi)
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Device clear function
+Function CommClear(ByVal vi As Long) As Long
+    CommClear = viClear(vi)
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Transmission function
+Function CommSend(ByVal vi As Long, ByVal msg As String) As Long
+    Dim act, ret As Long
+    ret = viWrite(vi, msg + Chr(10), Len(msg) + 1, act)         'Add LF to the character string and send
+    If (ret < 0) Then
+        Call viClear(vi)
+    End If
+    CommSend = ret
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Reception function
+Function CommRecv(ByVal vi As Long, ByRef msg As String) As Long
+    Dim act, ret As Long
+    ret = viRead(vi, msg, Len(msg), act)
+    If (ret < 0) Then
+        Call viClear(vi)
+        CommRecv = ret
+    Else
+        If (Mid(msg, act, 1) = Chr(10)) Then
+            act = act - 1                                       'If last byte is LF, subtract 1 from the number
+        End If                                                  'of received characters
+        CommRecv = act
+    End If
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Character string reception function
+Function CommRecvString(ByVal vi As Long) As String
+    Dim buf As String * 256
+    Dim ret As Integer
+    ret = CommRecv(vi, buf)
+    If (ret < 0) Then
+        CommRecvString = ""
+    Else
+        CommRecvString = Left(buf, ret)
+    End If
+End Function
+'-------------------------------------------------------------------------------------------------------------
+'Serial polling function
+Function CommPoll(ByVal vi As Long) As Integer
+    Dim ret As Long
+    Dim stb As Integer
+    ret = viReadSTB(vi, stb)
+    If (ret < 0) Then
+        CommPoll = ret
+    Else
+        CommPoll = stb
+    End If
+End Function
+'-------------------------------------------------------------------------------------------------------------
+
+'[Sample1]  Generate current pulse
+'-------------------------------------------------------------------------------------------------------------
+Function GenerateCurrentPulse(ByVal visa_name As String)
+    Dim defaultRM As Long
+    Dim vi As Long                                              'VISA device
+
+    Call viOpenDefaultRM(defaultRM)                             'Initialize the VISA system
+    vi = CommOpen(defaultRM, visa_name)                         'Open the VISA device
+
+    Call CommSend(vi, "*RST")                                   'Reset to factory default settings
+
+    Call CommSend(vi, ":PROG:EDIT:STAR")                        'Start editting the program
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Set 1st step(  0mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Set 2nd step(  0mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Set 3rd step(  0mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Set 4th step(  0mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Set 5th step(  0mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0.1")       'Set 6th step(100mA)
+    Call CommSend(vi, ":PROG:EDIT:END")                         'Finish editting the program
+
+    Call CommSend(vi, ":PROG:INT 0.1")                          'Program interval timer  100ms
+    Call CommSend(vi, ":PROG:SLOP 0")                           'Program slop time  0ms
+    Call CommSend(vi, ":PROG:REP 1")                            'Program repeat mode  ON
+
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.1;LEV 0")         'Source level  0mA
+    Call CommSend(vi, ":OUTP 1")                                'Output state  ON
+    Call CommSend(vi, ":PROG:RUN")                              'Run the program
+
+    viClose(vi)                                                 'Close the VISA device
+    viClose(defaultRM)                                          'Shutdown the VISA system
+End Function
+
+'[Sample2]  Load some programs
+'-------------------------------------------------------------------------------------------------------------
+Function ChangePrograms(ByVal visa_name As String)
+    Dim defaultRM As Long
+    Dim vi As Long                                              'VISA device
+    Dim flg As Integer
+
+    Call viOpenDefaultRM(defaultRM)                             'Initialize the VISA system
+    vi = CommOpen(defaultRM, visa_name)                         'Open the VISA device
+
+    Call CommSend(vi, "*RST")                                   'Reset to factory default settings
+
+    Call CommSend(vi, ":PROG:REP 0")                            'Program repeat mode  OFF
+
+    Call CommSend(vi, ":PROG:EDIT:STAR")                        'Start editting program
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 0")           'Set 1st step(0V)
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1")           'Set 2nd step(1V)
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 2")           'Set 3rd step(2V)
+    Call CommSend(vi, ":PROG:EDIT:END")                         'Finish editting program
+    Call CommSend(vi, ":PROG:SAVE ""user1.csv""")               'Save program as a file
+
+    Call CommSend(vi, ":PROG:EDIT:STAR")                        'Start editting program
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 3;LEV 3")           'Set 1st step( 3V)
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 3;LEV 0")           'Set 2nd step( 0V)
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 3;LEV -3")          'Set 3rd step(-3V)
+    Call CommSend(vi, ":PROG:EDIT:END")                         'Finish editting program
+    Call CommSend(vi, ":PROG:SAVE ""user2.csv""")               'Save program as a file
+
+    Call CommSend(vi, ":PROG:EDIT:STAR")                        'Start editting program
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.01;LEV 0.01")     'Set 1st step(10mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.01;LEV 0.009")    'Set 2nd step( 9mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.01;LEV 0.008")    'Set 3rd step( 8mA)
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.01;LEV 0.007")    'Set 4th step( 7mA)
+    Call CommSend(vi, ":PROG:EDIT:END")                         'Finish editting program
+    Call CommSend(vi, ":PROG:SAVE ""user3.csv""")               'Save program as a file
+
+    Call CommSend(vi, ":PROG:LOAD ""user1.csv""")               'Load program from a file
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 0")           'Set source level(0V)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+    Call CommSend(vi, ":PROG:RUN")                              'Run program
+    flg = 0
+    While flg = 0                                               'Loop until EOP is 1
+        Call CommSend(vi, ":STAT:EVEN?")                        'Read extended event register
+        flg = Val(CommRecvString(vi))
+        flg = flg And 128                                       'Check EOP
+    Wend
+    Call CommSend(vi, ":PROG:LOAD ""user2.csv""")               'Load program from a file
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 3;LEV 0")           'Set source level(0V)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+    Call CommSend(vi, ":PROG:RUN")                              'Run program
+    flg = 0
+    While flg = 0                                               'Loop until EOP is 1
+        Call CommSend(vi, ":STAT:EVEN?")                        'Read extended event register
+        flg = Val(CommRecvString(vi))
+        flg = flg And 128                                       'Check EOP
+    Wend
+
+    Call CommSend(vi, ":PROG:LOAD ""user3.csv""")               'Load program from a file
+    Call CommSend(vi, ":SOUR:FUNC CURR;RANG 0.01;LEV 0")        'Set source level(0mA)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+    Call CommSend(vi, ":PROG:RUN")                              'Run program
+    flg = 0
+    While flg = 0                                               'Loop until EOP is 1
+        Call CommSend(vi, ":STAT:EVEN?")                        'Read extended event register
+        flg = Val(CommRecvString(vi))
+        flg = flg And 128                                       'Check EOP
+    Wend
+    Call CommSend(vi, ":OUTP 0")                                'Set output state(OFF)
+
+    viClose(vi)                                                 'Close the VISA device
+    viClose(defaultRM)                                          'Shutdown the VISA system
+End Function
+
+'[Sample3]  Measure by timer(/MON option)
+'-------------------------------------------------------------------------------------------------------------
+Function FreeRunMeasure(ByVal visa_name As String)
+    Dim defaultRM As Long
+    Dim vi As Long                                              'VISA device
+    Dim i As Integer
+    Dim result(10) As Double                                    'Measured value
+
+    Call viOpenDefaultRM(defaultRM)                             'Initialize the VISA system
+    vi = CommOpen(defaultRM, visa_name)                         'Open the VISA device
+
+    Call CommSend(vi, "*RST")                                   'Reset to factory default settings
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 1;LEV 1")           'Set source level(1V)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+
+    For i = 0 To 9
+        Call CommSend(vi, ":READ?")                             'Read a measured value
+        result(i) = Val(CommRecvString(vi))
+    Next i
+
+    Call CommSend(vi, ":OUTP 0")                                'Set output state(OFF)
+
+    viClose(vi)                                                 'Close the VISA device
+    viClose(defaultRM)                                          'Shutdown the VISA system
+End Function
+
+'[Sample4]  Measure by triggers(/MON option)
+'-------------------------------------------------------------------------------------------------------------
+Function TriggeredMeasure(ByVal visa_name As String)
+    Dim defaultRM As Long
+    Dim vi As Long                                              'VISA device
+    Dim result(5) As Double                                     'Measured value
+
+    Call viOpenDefaultRM(defaultRM)                             'Initialize the VISA system
+    vi = CommOpen(defaultRM, visa_name)                         'Open the VISA device
+
+    Call CommSend(vi, "*RST")                                   'Reset to factory default settings
+
+    Call CommSend(vi, ":SENS:TRIG COMM")                        'Set measure trigger(Communicate)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1.0")         'Set source level(1.0V)
+    Call CommSend(vi, ":MEAS?")                                 'Generate measure trigger and read a measured value
+    result(0) = Val(CommRecvString(vi))
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1.1")         'Set source level(1.1V)
+    Call CommSend(vi, ":MEAS?")                                 'Generate measure trigger and read a measured value
+    result(1) = Val(CommRecvString(vi))
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1.2")         'Set source level(1.2V)
+    Call CommSend(vi, ":MEAS?")                                 'Generate measure trigger and read a measured value
+    result(2) = Val(CommRecvString(vi))
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1.3")         'Set source level(1.3V)
+    Call CommSend(vi, ":MEAS?")                                 'Generate measure trigger and read a measured value
+    result(3) = Val(CommRecvString(vi))
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 2;LEV 1.4")         'Set source level(1.4V)
+    Call CommSend(vi, ":MEAS?")                                 'Generate measure trigger and read a measured value
+    result(4) = Val(CommRecvString(vi))
+
+    Call CommSend(vi, ":OUTP 0")                                'Set output state(OFF)
+
+    viClose(vi)                                                 'Close the VISA device
+    viClose(defaultRM)                                          'Shutdown the VISA system
+End Function
+
+'[Sample5]  Create result files(/MON option)
+'-------------------------------------------------------------------------------------------------------------
+Function CreateStoreFile(ByVal visa_name As String)
+    Dim defaultRM As Long
+    Dim vi As Long                                              'VISA device
+    Dim flg As Integer
+
+    Call viOpenDefaultRM(defaultRM)                             'Initialize the VISA system
+    vi = CommOpen(defaultRM, visa_name)                         'Open the VISA device
+
+    Call CommSend(vi, "*RST")                                   'Reset to factory default settings
+
+    Call CommSend(vi, ":TRAC:POIN 10")                          'Set store points(10)
+    Call CommSend(vi, ":SENS:TRIG IMM")                         'Set measure trigger(Immediate)
+
+    Call CommSend(vi, ":PROG:EDIT:STAR")                        'Start editting program
+    Call CommSend(vi, ":SOUR:LEV 0.1")                          'Set 1st step(0.1V)
+    Call CommSend(vi, ":SOUR:LEV 0.2")                          'Set 2nd step(0.2V)
+    Call CommSend(vi, ":SOUR:LEV 0.3")                          'Set 3rd step(0.3V)
+    Call CommSend(vi, ":SOUR:LEV 0.4")                          'Set 4th step(0.4V)
+    Call CommSend(vi, ":SOUR:LEV 0.5")                          'Set 5th step(0.5V)
+    Call CommSend(vi, ":SOUR:LEV 0.6")                          'Set 6th step(0.6V)
+    Call CommSend(vi, ":SOUR:LEV 0.7")                          'Set seventh step(0.7V)
+    Call CommSend(vi, ":SOUR:LEV 0.8")                          'Set eighth step(0.8V)
+    Call CommSend(vi, ":SOUR:LEV 0.9")                          'Set nineth step(0.9V)
+    Call CommSend(vi, ":SOUR:LEV 1.0")                          'Set tenth step(1.0V)
+    Call CommSend(vi, ":PROG:EDIT:END")                         'Finish editting program
+
+    Call CommSend(vi, ":SOUR:FUNC VOLT;RANG 1;LEV 0")           'Set source level(0V)
+    Call CommSend(vi, ":OUTP 1")                                'Set output state(ON)
+    Call CommSend(vi, ":PROG:RUN")                              'Run program
+
+    Call CommSend(vi, ":TRAC:STAT 1")                           'Enable store(ON)
+    flg = 0
+    While flg = 0                                               'Loop until TSE is 1
+        Call CommSend(vi, ":STAT:EVEN?")                        'Read extended event register
+        flg = Val(CommRecvString(vi))
+        flg = flg And 8                                         'Check TSE
+    Wend
+
+    Call CommSend(vi, ":PROG:HOLD")                             'Stop program
+    Call CommSend(vi, ":TRAC:POIN 100")                         'Set store points(100)
+    Call CommSend(vi, ":PROG:RUN")                              'Run program
+    Call CommSend(vi, ":TRAC:STAT 1")                           'Enable store(ON)
+    flg = 0
+    While flg = 0                                               'Loop until TSE is 1
+        Call CommSend(vi, ":STAT:EVEN?")                        'Read extended event register
+        flg = Val(CommRecvString(vi))
+        flg = flg And 8                                         'Check TSE
+    Wend
+
+    Call CommSend(vi, ":OUTP 0")                                'Set output state(OFF)
+
+    viClose(vi)                                                 'Close the VISA device
+    viClose(defaultRM)                                          'Shutdown the VISA system
+End Function
+'-------------------------------------------------------------------------------------------------------------
